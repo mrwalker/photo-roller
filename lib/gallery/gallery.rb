@@ -11,7 +11,7 @@ module Gallery
       @remote.login(user, pass)
     end
 
-    def albums(params = {}, &block)
+    def albums(params = {})
       response = @remote.fetch_albums_prune
       album_params = response.keys.inject([]) do |album_params, key|
         next album_params unless key =~ /album\.(.*)\.(\d+)/

@@ -49,7 +49,7 @@ module Gallery
       @uri = URI.parse(url)
       @base_params = {
         'g2_controller' => 'remote:GalleryRemote',
-        'g2_form[protocol_version]'=>'2.9'
+        'g2_form[protocol_version]' => '2.9'
       }
       @cookie_jar = CookieJar.new    
       @boundary = '7d21f123d00c4'
