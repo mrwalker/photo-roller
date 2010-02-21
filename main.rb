@@ -12,22 +12,31 @@ Gallery::Gallery.new(account[:url]) do
   login account[:username], account[:password]
   puts remote.status
 
-  albums do |album|
-    puts "#{album}: #{remote.status}"
-    puts album.params.inspect
-    album.images do |image|
-      puts "#{image}: #{remote.status}"
-      puts image.params.inspect
-    end
-  end
+  album = albums.find{ |a| a.title == 'Matt and Sondra\'s Photos' }
+  puts "#{album}: #{remote.status}"
+  pp album.images
 
-  names = albums.inject({}) do |names, album|
-    print '.'
-    images = album.images
-    print images.size
-    names[album.name] = images.map{ |i| i.name }
-    names
-  end
+  response = album.add('whale.jpg')
+  puts remote.status
+  pp response
+  pp album.images
 
-  pp names
+  #albums do |album|
+  #  puts "#{album}: #{remote.status}"
+  #  puts album.params.inspect
+  #  album.images do |image|
+  #    puts "#{image}: #{remote.status}"
+  #    puts image.params.inspect
+  #  end
+  #end
+
+  #names = albums.inject({}) do |names, album|
+  #  print '.'
+  #  images = album.images
+  #  print images.size
+  #  names[album.name] = images.map{ |i| i.name }
+  #  names
+  #end
+
+  #pp names
 end

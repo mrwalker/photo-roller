@@ -65,10 +65,10 @@ module Gallery
       send_request(params)
     end
 
-    #def add_item(file_name, set_albumName, params = {})
-    #  params = { :cmd => 'add-item', :set_albumName => set_albumName }.merge(params)
-    #  send_request(params, file_name)
-    #end
+    def add_item(file_name, set_albumName, params = {})
+      params = { :cmd => 'add-item', :set_albumName => set_albumName, :file_name => file_name }.merge(params)
+      send_request(params)
+    end
 
     def album_properties(set_albumName, params = {})
       params = { :cmd => 'album-properties', :set_albumName => set_albumName }.merge(params)
@@ -92,27 +92,28 @@ module Gallery
     private
     
     def build_multipart_query(params, file_name)
-      params["g2_form[userfile_name]"] = file_name  
-      result = params.map{ |k, v| "Content-Disposition: form-data; name=\"#{k}\"\r\n\r\n#{v}\r\n" } #CGI::escape(
-      content = open( file_name ) { |f| f.read }
-      result << "Content-Disposition: form-data; name=\"g2_form[userfile]\"; filename=\"#{file_name}\"\r\n" +
+      params['g2_userfile_name'] = file_name  
+      request = params.map{ |k, v| "Content-Disposition: form-data; name=\"#{k}\"\r\n\r\n#{v}\r\n" }
+      content = File.open(file_name, 'r'){ |f| f.read }
+      request << "Content-Disposition: form-data; name=\"g2_userfile\"; filename=\"#{file_name}\"\r\n" +
         "Content-Transfer-Encoding: binary\r\n" +
-        "Content-Type: #{@@supported_types[File.extname(file_name)]}\r\n\r\n" + 
+        "Content-Type: #{@@supported_types[File.extname(file_name)]}\r\n\r\n" +
         content + "\r\n"
-      result.collect { |p| "--#{@boundary}\r\n#{p}" }.join("") + "--#{@boundary}--"
+      request.collect { |p| "--#{@boundary}\r\n#{p}" }.join("") + "--#{@boundary}--"
     end
-    
+
     def build_query(params)
-      params.map{ |k, v| "#{k}=#{v}" }.join("&") 
+      params.map{ |k, v| "#{k}=#{v}" }.join('&')
     end
-    
-    def send_request(params, file_name=nil)
+
+    def send_request(params)
+      file_name = params.delete(:file_name)
       post_parameters = prep_params(params)
       headers = {}    
-      headers["Cookie"] = @cookie_jar.cookies if @cookie_jar.cookies
-      if(file_name && File.file?(file_name))
+      headers['Cookie'] = @cookie_jar.cookies if @cookie_jar.cookies
+      if file_name && File.file?(file_name)
         query = build_multipart_query(post_parameters, file_name)
-        headers["Content-type"] = "multipart/form-data, boundary=#{@boundary} " if @boundary
+        headers['Content-type'] = "multipart/form-data, boundary=#{@boundary}" if @boundary
       else
         query = build_query(post_parameters)
       end
@@ -130,25 +131,26 @@ module Gallery
         h.post( @uri.path, query, headers )
       }
     end
-    
+
     def prep_params(params)
       result = {}
       result = result.merge(@base_params)
       params.each_pair do |name, value|
         result["g2_form[#{name}]"] = value
       end
-      params["g2_authToken"] = @auth_token if @auth_token
+      result['g2_authToken'] = @auth_token if @auth_token
       result
     end
-    
+
     def handle_response(res)
-      @cookie_jar.add(res.header.get_fields("set-cookie"))  
+      @cookie_jar.add(res.header.get_fields('set-cookie'))
       @last_response = {}
       res.body.each do |line|
         name, *values = line.strip.split(/\s*=\s*/)
-        @last_response[name.strip] = values.join "="
+        @last_response[name.strip] = values.join('=')
       end
-      @auth_token = @last_response['auth_token']
+      @auth_token ||= @last_response['auth_token']
+      puts 'WARN: no auth token in response (using last)' unless @last_response['auth_token']
       @status = @last_response['status']
       @status_text = @last_response['status_text']
       @last_response

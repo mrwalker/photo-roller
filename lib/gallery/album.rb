@@ -26,6 +26,10 @@ module Gallery
         image
       end
     end
+
+    def add(file_name, params = {})
+      @remote.add_item(file_name, name, params)
+    end
     
     def name
       @params['name']
