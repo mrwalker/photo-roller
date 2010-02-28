@@ -4,7 +4,7 @@ module Gallery
 
     def initialize(url, &block)
       @remote = Remote.new(url)
-      instance_eval(&block)
+      instance_eval(&block) if block_given?
     end
 
     def login(user, pass)

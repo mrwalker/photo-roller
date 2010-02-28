@@ -27,8 +27,12 @@ module Gallery
       end
     end
 
-    def add(file_name, params = {})
-      @remote.add_item(file_name, name, params)
+    def add_item(file_name, params = {})
+      @remote.add_item(name, file_name, params)
+    end
+
+    def add_album(title, params = {})
+      @remote.new_album(name, { :newAlbumName => title_to_name(title), :newAlbumTitle => title }.merge(params))
     end
     
     def name
@@ -45,6 +49,16 @@ module Gallery
     
     def to_s
       "Album #{name}: #{title}"
+    end
+
+    private
+
+    def title_to_name(title)
+      name = title.dup
+      name.downcase!
+      name.gsub!(/[,'\-:]/, '') # Remove illegal characters
+      name.gsub!(/\s+/, '_')    # Join words with underscores
+      name
     end
   end
 end

@@ -55,31 +55,72 @@ module Gallery
       @boundary = '7d21f123d00c4'
     end
 
+    # cmd=login
+    # protocol_version=2.0
+    # uname=gallery-user-name
+    # password=cleartext-password
     def login(uname, password, params = {})
       params = { :cmd => 'login', :uname => uname, :password => password }.merge(params)
       send_request(params)
     end
 
+    # cmd=fetch-albums-prune
+    # protocol_version=2.2
+    # no_perms=yes/no [optional, G2 since 2.9]
     def fetch_albums_prune(params = {})
       params = { :cmd => 'fetch-albums-prune', :no_perms => 'y' }.merge(params)
       send_request(params)
     end
 
-    def add_item(file_name, set_albumName, params = {})
-      params = { :cmd => 'add-item', :set_albumName => set_albumName, :file_name => file_name }.merge(params)
+    # cmd=add-item
+    # protocol_version=2.0
+    # set_albumName=album name
+    # userfile=user-file
+    # userfile_name=file-name
+    # caption=caption [optional]
+    # force_filename=force-filename [optional]
+    # auto_rotate=yes/no [optional, since 2.5]
+    # extrafield.fieldname=fieldvalue [optional, since 2.3]
+    def add_item(set_albumName, userfile_name, params = {})
+      params = { :cmd => 'add-item', :set_albumName => set_albumName, :userfile_name => userfile_name }.merge(params)
       send_request(params)
     end
 
+    # cmd=album-properties
+    # protocol_version=2.0
+    # set_albumName=album-name
     def album_properties(set_albumName, params = {})
       params = { :cmd => 'album-properties', :set_albumName => set_albumName }.merge(params)
       send_request(params)
     end
 
+    # cmd=new-album
+    # protocol_version=2.1
+    # set_albumName=parent-album-name
+    # newAlbumName=album-name [optional]
+    # newAlbumTitle=album-title [optional]
+    # newAlbumDesc=album-description [optional]
+    def new_album(set_albumName, params = {})
+      params = { :cmd => 'new-album', :set_albumName => set_albumName }.merge(params)
+      send_request(params)
+    end
+
+    # cmd=fetch-album-images
+    # protocol_version=2.4
+    # set_albumName=album-name
+    # albums_too=yes/no [optional, since 2.13]
+    # random=yes/no [optional, G2 since ***]
+    # limit=number-of-images [optional, G2 since ***]
+    # extrafields=yes/no [optional, G2 since 2.12]
+    # all_sizes=yes/no [optional, G2 since 2.14]
     def fetch_album_images(set_albumName, params = {})
       params = { :cmd => 'fetch-album-images', :set_albumName => set_albumName }.merge(params)
       send_request(params)
     end
 
+    # cmd=image-properties
+    # protocol_version=***
+    # id=item-id
     def image_properties(id, params = {})
       params = { :cmd => 'image-properties', :id => id }.merge(params)
       send_request(params)
@@ -91,13 +132,13 @@ module Gallery
     
     private
     
-    def build_multipart_query(params, file_name)
-      params['g2_userfile_name'] = file_name  
+    def build_multipart_query(params, userfile_name)
+      params['g2_userfile_name'] = userfile_name  
       request = params.map{ |k, v| "Content-Disposition: form-data; name=\"#{k}\"\r\n\r\n#{v}\r\n" }
-      content = File.open(file_name, 'r'){ |f| f.read }
-      request << "Content-Disposition: form-data; name=\"g2_userfile\"; filename=\"#{file_name}\"\r\n" +
+      content = File.open(userfile_name, 'r'){ |f| f.read }
+      request << "Content-Disposition: form-data; name=\"g2_userfile\"; filename=\"#{userfile_name}\"\r\n" +
         "Content-Transfer-Encoding: binary\r\n" +
-        "Content-Type: #{@@supported_types[File.extname(file_name)]}\r\n\r\n" +
+        "Content-Type: #{@@supported_types[File.extname(userfile_name)]}\r\n\r\n" +
         content + "\r\n"
       request.collect { |p| "--#{@boundary}\r\n#{p}" }.join("") + "--#{@boundary}--"
     end
@@ -107,12 +148,12 @@ module Gallery
     end
 
     def send_request(params)
-      file_name = params.delete(:file_name)
+      userfile_name = params.delete(:userfile_name)
       post_parameters = prep_params(params)
       headers = {}    
       headers['Cookie'] = @cookie_jar.cookies if @cookie_jar.cookies
-      if file_name && File.file?(file_name)
-        query = build_multipart_query(post_parameters, file_name)
+      if userfile_name && File.file?(userfile_name)
+        query = build_multipart_query(post_parameters, userfile_name)
         headers['Content-type'] = "multipart/form-data, boundary=#{@boundary}" if @boundary
       else
         query = build_query(post_parameters)
