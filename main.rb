@@ -22,27 +22,16 @@ ALBUM_DATA = [
 class PhotoRoller
   attr_accessor :account, :album_data, :gallery, :albums, :parent_album
 
-  @@album_mapping = {
-    #'title' => :newAlbumTitle,
-    'description' => :newAlbumDesc
-  }
-
   @@photo_mapping = {
     #'file_name' => :userfile,
-    'title' => :caption,
-    'description' => :'extrafield.Description'
+    :caption => :caption,
+    :comment => :'extrafield.Description'
+    # TODO: keywords => 'extrafield.Keywords' ?
   }
 
-  def album_to_params(album)
-    @@album_mapping.inject({}) do |remote, (album_key, remote_key)|
-      remote[remote_key] = album[album_key] if album[album_key]
-      remote
-    end
-  end
-
-  def photo_to_params(photo)
+  def iphoto_image_to_params(iphoto_image)
     @@photo_mapping.inject({}) do |remote, (photo_key, remote_key)|
-      remote[remote_key] = photo[photo_key] if photo[photo_key]
+      remote[remote_key] = iphoto_image.send(photo_key) if iphoto_image.send(photo_key)
       remote
     end
   end
@@ -62,35 +51,40 @@ class PhotoRoller
     #@parent_album ||= Gallery::Album.new(@gallery.remote, { 'name' => '0', 'title' => 'Gallery' })
   end
 
-  def upload(album_data)
-    album_data.each do |album, photos|
-      remote_album = albums.find{ |a| a.title == album['title'] }
+  def upload
+    count, limit = 1, 6
+    @album_data.rolls.each do |roll|
+      iphoto_images = roll.images
+      next if iphoto_images.size > 10
+      break if count > limit
+      count += 1
+
+      remote_album = albums.find{ |a| a.title == roll.name }
       if remote_album
-        puts "Album exists: #{album['title']}"
-        to_upload = photos.size
+        puts "Album exists: #{roll.name}"
 
         # Only upload photos that don't already exist
         remote_photos = remote_album.images.map(&:caption)
         puts gallery.remote.status
 
-        photos = photos.reject{ |p| remote_photos.include?(p['title']) }
-        puts "#{to_upload - photos.size} photos already exist in album; not uploading" if photos.size < to_upload
+        iphoto_images = iphoto_images.reject{ |iphoto_image| remote_photos.include?(iphoto_image.caption) }
+        puts "#{roll.images.size - iphoto_images.size} of #{roll.images.size} photos already exist in album" if iphoto_images.size < roll.images.size
       else
-        puts "Album missing: #{album['title']}"
+        puts "Album missing: #{roll.name}"
 
-        parent_album.add_album(album['title'], album_to_params(album))
+        parent_album.add_album(roll.name)
         puts gallery.remote.status
 
         # TODO: get actual name, update albums, etc.
         albums = gallery.albums
         puts gallery.remote.status
 
-        remote_album = albums.find{ |a| a.title == album['title'] }
+        remote_album = albums.find{ |a| a.title == roll.name }
       end
 
-      puts "Uploading #{photos.size} photos"
-      photos.each do |photo|
-        remote_album.add_item(photo['file_name'], photo_to_params(photo))
+      puts "Uploading #{iphoto_images.size} photos"
+      iphoto_images.each do |iphoto_image|
+        remote_album.add_item(iphoto_image.path, iphoto_image_to_params(iphoto_image))
         puts gallery.remote.status
       end
 
@@ -99,7 +93,7 @@ class PhotoRoller
   end
 end
 
-#PhotoRoller.new.upload(ALBUM_DATA)
+PhotoRoller.new.upload
 
 #Gallery::Gallery.new(account[:url]) do
 #  login account[:username], account[:password]
