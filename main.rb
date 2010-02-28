@@ -6,6 +6,7 @@ $:.unshift File.join(File.dirname(__FILE__), 'lib')
 require 'pp'
 require 'yaml'
 require 'gallery'
+require 'iphoto'
 
 ALBUM_DATA = [
   [
@@ -19,7 +20,7 @@ ALBUM_DATA = [
 ]
 
 class PhotoRoller
-  attr_accessor :account, :gallery, :albums, :parent_album
+  attr_accessor :account, :album_data, :gallery, :albums, :parent_album
 
   @@album_mapping = {
     #'title' => :newAlbumTitle,
@@ -48,6 +49,8 @@ class PhotoRoller
 
   def initialize
     @account = YAML.load_file('account.yml')
+    @album_data = IPhoto::AlbumData.new(account[:album_data])
+
     @gallery = Gallery::Gallery.new(account[:url])
     @gallery.login(account[:username], account[:password])
     puts @gallery.remote.status
@@ -56,7 +59,7 @@ class PhotoRoller
     puts @gallery.remote.status
 
     @parent_album = @albums.find{ |a| a.title == @account[:parent_album] }
-    @parent_album ||= Album.new(@gallery.remote, { 'name' => '0', 'title' => 'Gallery' })
+    #@parent_album ||= Gallery::Album.new(@gallery.remote, { 'name' => '0', 'title' => 'Gallery' })
   end
 
   def upload(album_data)
@@ -67,11 +70,11 @@ class PhotoRoller
         to_upload = photos.size
 
         # Only upload photos that don't already exist
-        remote_photos = remote_album.images
+        remote_photos = remote_album.images.map(&:caption)
         puts gallery.remote.status
 
         photos = photos.reject{ |p| remote_photos.include?(p['title']) }
-        puts "#{to_upload - photos.size} already exist in album; not uploading" if photos.size < to_upload
+        puts "#{to_upload - photos.size} photos already exist in album; not uploading" if photos.size < to_upload
       else
         puts "Album missing: #{album['title']}"
 
@@ -96,7 +99,7 @@ class PhotoRoller
   end
 end
 
-PhotoRoller.new.upload(ALBUM_DATA)
+#PhotoRoller.new.upload(ALBUM_DATA)
 
 #Gallery::Gallery.new(account[:url]) do
 #  login account[:username], account[:password]

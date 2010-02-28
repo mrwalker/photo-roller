@@ -18,6 +18,10 @@ module Gallery
       @params['title']
     end
 
+    def caption
+      @params['caption']
+    end
+
     def to_s
       "Image #{name}: #{title}"
     end
