@@ -1,0 +1,6 @@
+To export your iPhoto library to Gallery:
+* Copy account.yml.template to account.yml and fill in the missing data
+* Run ./main.rb
+
+Gotchas:
+* Most common upload failure is caused by 2MB cap on uploads set in php.ini
