@@ -1,0 +1,18 @@
+--- 
+:rejects_file: rejects.csv
+# iPhoto settings
+:album_data: PATH_TO_YOUR_ALBUM_DATA
+:excluded_keywords:
+  - not uploaded
+  - Movie
+:excluded_media_types:
+  - MOV
+  - MPEG4
+:excluded_image_types:
+  - TIFF
+  - BMP
+# Gallery settings
+:username: YOUR_USER
+:password: YOUR_PASSWORD
+:url: YOUR_FULL_GALLERY_URL
+:parent_album: YOUR_PARENT_ALBUM

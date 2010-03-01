@@ -32,40 +32,43 @@ class PhotoRoller
       #parent_album ||= Gallery::Album.new(remote, { 'name' => '0', 'title' => 'Gallery' })
 
       count, limit = 1, 50
-      album_data.rolls.each do |roll|
-        iphoto_images = roll.images
-        next if iphoto_images.size > 10
-        break if count > limit
-        count += 1
-
-        remote_album = album_cache.find{ |a| a.title == roll.name }
-        if remote_album
-          # Only upload photos that don't already exist
-          puts "Album exists: #{roll.name}"
-          remote_photos = remote_album.images.map(&:caption)
-
-          iphoto_images = iphoto_images.reject{ |iphoto_image| remote_photos.include?(iphoto_image.caption) }
-          puts "#{roll.images.size - iphoto_images.size} of #{roll.images.size} photos already exist in album" if iphoto_images.size < roll.images.size
-        else
-          puts "Album missing: #{roll.name}"
-          parent_album.add_album(roll.name)
-
-          # TODO: get actual name, update albums, etc.
-          album_cache = albums
+      File.open(account[:rejects_file], 'w') do |rejects|
+        album_data.rolls.each do |roll|
+          iphoto_images = roll.images
+          next if iphoto_images.size > 10
+          break if count > limit
+          count += 1
 
           remote_album = album_cache.find{ |a| a.title == roll.name }
-        end
+          if remote_album
+            # Only upload photos that don't already exist
+            puts "Album exists: #{roll.name}"
+            remote_photos = remote_album.images.map(&:caption)
 
-        puts "Uploading #{iphoto_images.size} photos"
-        iphoto_images.each do |iphoto_image|
-          remote_album.add_item(iphoto_image.path, PhotoRoller.iphoto_image_to_params(iphoto_image))
-          unless remote.status == Gallery::Remote::GR_STAT_SUCCESS
-            # Failed to upload photo -- make this check more specific
-            puts iphoto_image.path
+            iphoto_images = iphoto_images.reject{ |iphoto_image| remote_photos.include?(iphoto_image.caption) }
+            puts "#{roll.images.size - iphoto_images.size} of #{roll.images.size} photos already exist in album" if iphoto_images.size < roll.images.size
+          else
+            puts "Album missing: #{roll.name}"
+            parent_album.add_album(roll.name)
+
+            # TODO: get actual name, update albums, etc.
+            album_cache = albums
+
+            remote_album = album_cache.find{ |a| a.title == roll.name }
           end
-        end
 
-        # TODO: update albums?
+          puts "Uploading #{iphoto_images.size} photos"
+          iphoto_images.each do |iphoto_image|
+            remote_album.add_item(iphoto_image.path, PhotoRoller.iphoto_image_to_params(iphoto_image))
+            unless remote.status == Gallery::Remote::GR_STAT_SUCCESS
+              # Failed to upload photo -- make this check more specific
+              rejects << [iphoto_image.path, remote.status, remote.status_text, Gallery::Remote::STATUS_DESCRIPTIONS[remote.status]].join("\t")
+              rejects << "\n"
+            end
+          end
+
+          # TODO: update albums?
+        end
       end
     end
   end

@@ -4,7 +4,7 @@ require 'cookie_jar'
 
 module Gallery
   class Remote
-    attr_accessor :last_response
+    attr_accessor :last_response, :status, :status_text
 
     GR_STAT_SUCCESS = 0
     PROTO_MAJ_VER_INVAL = 101
@@ -125,11 +125,11 @@ module Gallery
       params = { :cmd => 'image-properties', :id => id }.merge(params)
       send_request(params)
     end
-    
-    def status
+
+    def status_msg
       "#{@status} - (#{@status_text})"
     end
-    
+
     private
     
     def build_multipart_query(params, userfile_name)
@@ -203,7 +203,7 @@ module Gallery
       puts 'WARN: no auth token in response (using last)' unless @last_response['auth_token']
       @status = @last_response['status'].to_i
       @status_text = @last_response['status_text']
-      puts status
+      puts status_msg
       puts "WARN: #{STATUS_DESCRIPTIONS[@status]}" unless @status == GR_STAT_SUCCESS
       @last_response
     end
