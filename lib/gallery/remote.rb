@@ -186,14 +186,25 @@ module Gallery
     def handle_response(res)
       @cookie_jar.add(res.header.get_fields('set-cookie'))
       @last_response = {}
-      res.body.each do |line|
-        name, *values = line.strip.split(/\s*=\s*/)
-        @last_response[name.strip] = values.join('=')
+      begin
+        header = false
+        res.body.each do |line|
+          header = true if line.chomp == '#__GR2PROTO__'
+          next unless header   # Ignore debug output
+          next if line =~ /^#/ # Ignore comments
+          name, *values = line.strip.split(/\s*=\s*/)
+          @last_response[name.strip] = values.join('=')
+        end
+      rescue Exception => e
+        puts "Error parsing response:\n#{res.body}"
+        throw e
       end
       @auth_token ||= @last_response['auth_token']
       puts 'WARN: no auth token in response (using last)' unless @last_response['auth_token']
-      @status = @last_response['status']
+      @status = @last_response['status'].to_i
       @status_text = @last_response['status_text']
+      puts status
+      puts "WARN: #{STATUS_DESCRIPTIONS[@status]}" unless @status == GR_STAT_SUCCESS
       @last_response
     end
   end
