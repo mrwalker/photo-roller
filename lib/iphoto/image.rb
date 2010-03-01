@@ -2,8 +2,16 @@ module IPhoto
   class Image
     attr_accessor :id, :params
 
-    def initialize(id, params)
-      @id, @params = id, params
+    def initialize(id, keywords, params)
+      @id, @keyword_map, @params = id, keywords, params
+    end
+
+    def keywords
+      keyword_keys.map{ |key| @keyword_map[key] }
+    end
+
+    def keyword_string
+      keywords.join(',')
     end
 
     def id
@@ -31,7 +39,8 @@ module IPhoto
     end
 
     def keyword_keys
-      @params['Keywords']
+      # Keywords is nil when there are no keywords defined
+      @params['Keywords'] || []
     end
 
     def media_type
