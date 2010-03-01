@@ -3,14 +3,19 @@
 # iPhoto settings
 :album_data: PATH_TO_YOUR_ALBUM_DATA
 :excluded_keywords:
-  - not uploaded
   - Movie
+  - not uploaded
 :excluded_media_types:
-  - MOV
-  - MPEG4
+#  - Image
+  - Movie
 :excluded_image_types:
-  - TIFF
-  - BMP
+#  - BMPf
+#  - GIFf
+#  - JPEG
+  - MooV
+  - mpg4
+#  - TIFF
+  - VfW
 # Gallery settings
 :username: YOUR_USER
 :password: YOUR_PASSWORD
