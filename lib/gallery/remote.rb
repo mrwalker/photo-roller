@@ -43,7 +43,23 @@ module Gallery
       ROTATE_IMAGE_FAILED => 'The image could not be rotated' 
     }          
 
-    @@supported_types = { '.jpg' => 'image/jpeg' }
+    @@supported_types = {
+      '.avi'  => 'video/x-msvideo',
+      '.bmp'  => 'image/bmp',
+      '.gif'  => 'image/gif',
+      '.jpe'  => 'image/jpeg',
+      '.jpg'  => 'image/jpeg',
+      '.jpeg' => 'image/jpeg',
+      '.mov'  => 'video/quicktime',
+      '.qt'   => 'video/quicktime',
+      '.mp4'  => 'video/mp4',
+      '.tif'  => 'image/tiff',
+      '.tiff' => 'image/tiff'
+    }
+
+    def self.supported_type?(extension)
+      @@supported_types.has_key?(extension)
+    end
 
     def initialize(url)
       @uri = URI.parse(url)
@@ -131,14 +147,14 @@ module Gallery
     end
 
     private
-    
+
     def build_multipart_query(params, userfile_name)
-      params['g2_userfile_name'] = userfile_name  
+      params['g2_userfile_name'] = userfile_name
       request = params.map{ |k, v| "Content-Disposition: form-data; name=\"#{k}\"\r\n\r\n#{v}\r\n" }
       content = File.open(userfile_name, 'r'){ |f| f.read }
       request << "Content-Disposition: form-data; name=\"g2_userfile\"; filename=\"#{userfile_name}\"\r\n" +
         "Content-Transfer-Encoding: binary\r\n" +
-        "Content-Type: #{@@supported_types[File.extname(userfile_name)]}\r\n\r\n" +
+        "Content-Type: #{@@supported_types[File.extname(userfile_name).downcase]}\r\n\r\n" +
         content + "\r\n"
       request.collect { |p| "--#{@boundary}\r\n#{p}" }.join("") + "--#{@boundary}--"
     end

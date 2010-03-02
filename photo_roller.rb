@@ -47,6 +47,8 @@ class PhotoRoller
           break if count > limit
           count += 1
 
+          puts "Roll: #{roll.name}"
+
           # Exclusions
           PhotoRoller.reject_images(iphoto_images, 'excluded by media type'){ |iphoto_image| account[:excluded_media_types].include?(iphoto_image.media_type) }
           PhotoRoller.reject_images(iphoto_images, 'excluded by image type'){ |iphoto_image| account[:excluded_image_types].include?(iphoto_image.image_type) }
@@ -76,6 +78,11 @@ class PhotoRoller
 
           puts "Uploading #{iphoto_images.size} photos"
           iphoto_images.each do |iphoto_image|
+            unless Gallery::Remote.supported_type?(File.extname(iphoto_image.path).downcase)
+              rejects << [iphoto_image.path, '-', "MIME type for extension #{File.extname(iphoto_image.path).downcase} unknown", 'Unsupported file type'].join("\t")
+              rejects << "\n"
+              next
+            end
             remote_album.add_item(iphoto_image.path, PhotoRoller.iphoto_image_to_params(iphoto_image))
             unless remote.status == Gallery::Remote::GR_STAT_SUCCESS
               # Failed to upload photo -- make this check more specific
