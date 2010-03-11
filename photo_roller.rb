@@ -1,8 +1,10 @@
-$:.unshift File.join(File.dirname(__FILE__), 'lib')
-
 require 'yaml'
-require 'gallery'
+
+$:.unshift File.join(File.dirname(__FILE__), 'lib')
 require 'iphoto'
+
+require 'rubygems'
+require 'gallery'
 
 class PhotoRoller
   @@photo_mapping = {
