@@ -31,6 +31,7 @@ def upload(account)
         remote_album = album_cache.find{ |a| a.title == name }
         if remote_album
           puts "Names matched: #{name}; '#{char}' requires no escape"
+          char
         else
           puts "Did not find: #{name} at #{response['albun_name']}"
           remote_album = album_cache.find{ |a| a.name == response['album_name'] }
