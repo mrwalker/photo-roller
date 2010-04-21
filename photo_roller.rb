@@ -15,6 +15,9 @@ class PhotoRoller
     #:keyword_string => :'extrafield.Keywords'
   }
 
+  @@album_escapes = YAML.load_file('album_escapes.yml')
+  @@image_escapes = YAML.load_file('image_escapes.yml')
+
   def self.iphoto_image_to_params(iphoto_image)
     @@photo_mapping.inject({}) do |remote, (photo_key, remote_key)|
       remote[remote_key] = iphoto_image.send(photo_key) if iphoto_image.send(photo_key)
@@ -28,6 +31,20 @@ class PhotoRoller
     puts "#{original_size - iphoto_images.size} of #{original_size} photos #{msg}" if iphoto_images.size < original_size
   end
 
+  def self.escape_album(name)
+    escape(name, @@album_escapes)
+  end
+
+  def self.escape_image(name)
+    escape(name, @@image_escapes)
+  end
+
+  def self.escape(name, escapes)
+    acc = ''
+    name.each_char{ |c| acc << (escapes[c] ? escapes[c] : c) }
+    acc
+  end
+
   def upload(account)
     album_data = IPhoto::AlbumData.new(account[:album_data])
     puts "Loaded iPhoto album data (#{album_data.rolls.size} rolls, #{album_data.images.size} images)"
@@ -39,16 +56,9 @@ class PhotoRoller
       parent_album = album_cache.find{ |a| a.title == account[:parent_album] }
       raise "Could not find parent album '#{account[:parent_album]}; create it or modify account settings'" unless parent_album
 
-      # TODO: remove
-      count, limit = 1, 50
       File.open(account[:rejects_file], 'w') do |rejects|
         album_data.rolls.each do |roll|
           iphoto_images = roll.images
-          # TODO: remove
-          next if iphoto_images.size > 10
-          break if count > limit
-          count += 1
-
           puts "Roll: #{roll.name}"
 
           # Exclusions
@@ -65,14 +75,27 @@ class PhotoRoller
             puts "Album exists: #{roll.name}"
             remote_photos = remote_album.images.map(&:caption)
 
-            PhotoRoller.reject_images(iphoto_images, 'already exist in album'){ |iphoto_image| remote_photos.include?(iphoto_image.caption) }
+            PhotoRoller.reject_images(iphoto_images, 'already exist in album'){ |iphoto_image| remote_photos.include?(PhotoRoller.escape_image(iphoto_image.caption)) }
           else
             puts "Album missing: #{roll.name}"
-            parent_album.add_album(roll.name)
+            response = parent_album.add_album(roll.name)
+            unless remote.status == Gallery::Remote::GR_STAT_SUCCESS
+              iphoto_images.each do |iphoto_image|
+                rejects << [iphoto_image.path, '-', "Not uploaded since album '#{roll.name}' could not be created", 'Failed to create album'].join("\t")
+                rejects << "\n"
+              end
+              next
+            end
 
-            # TODO: get actual name, update albums, etc.
             album_cache = albums
-            remote_album = album_cache.find{ |a| a.title == roll.name }
+            remote_album = album_cache.find{ |a| a.title == PhotoRoller.escape_album(roll.name) }
+            unless remote_album
+              iphoto_images.each do |iphoto_image|
+                rejects << [iphoto_image.path, '-', "not uploaded since album '#{roll.name}' could not be found using escaped name '#{PhotoRoller.escape_album(roll.name)}'", 'Failed to find album'].join("\t")
+                rejects << "\n"
+              end
+              next
+            end
           end
 
           # Don't bother uploading 0 images
@@ -93,7 +116,8 @@ class PhotoRoller
             end
           end
 
-          # TODO: update albums?
+          # Note: albums are not updated after upload since nesting is not
+          # supported, saving an album fetch on each roll
         end
       end
     end

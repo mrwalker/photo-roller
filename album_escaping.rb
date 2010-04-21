@@ -7,16 +7,21 @@ require 'gallery'
 def upload(account)
   Gallery::Gallery.new(account[:url]) do
     login(account[:username], account[:password])
+
+    parent_name = 'Reverse Engineering Album Escaping'
     album_cache = albums
+    parent_album = album_cache.find{ |a| a.title == parent_name }
 
-    root_album = album_cache.find{ |a| a.title == account[:parent_album] }
-    raise "Could not find root album '#{account[:parent_album]}; create it or modify account settings'" unless root_album
+    unless parent_album
+      root_album = album_cache.find{ |a| a.title == account[:parent_album] }
+      raise "Could not find root album '#{account[:parent_album]}; create it or modify account settings'" unless root_album
 
-    response = root_album.add_album('Reverse Engineering Escaping')
-    raise "Could not create parent album '#{Reverse Engineering Escaping}" unless remote.status == Gallery::Remote::GR_STAT_SUCCESS
+      root_album.add_album(parent_name)
+      raise "Could not create parent album '#{parent_name}'" unless remote.status == Gallery::Remote::GR_STAT_SUCCESS
 
-    album_cache = albums
-    parent_album = album_cache.find{ |a| a.title == "Reverse Engineering Escaping" }
+      album_cache = albums
+      parent_album = album_cache.find{ |a| a.title == parent_name }
+    end
 
     test_name = lambda do |char, name|
       remote_album = album_cache.find{ |a| a.title == name }
@@ -33,7 +38,7 @@ def upload(account)
           puts "Names matched: #{name}; '#{char}' requires no escape"
           char
         else
-          puts "Did not find: #{name} at #{response['albun_name']}"
+          puts "Did not find: #{name} at #{response['album_name']}"
           remote_album = album_cache.find{ |a| a.name == response['album_name'] }
           puts "Found: #{remote_album.title} by name: #{remote_album.name}; '#{char}' requires escaping"
           remote_album.title.match(/Contains (.*) char/).to_a.last
@@ -48,8 +53,8 @@ def upload(account)
       test_name.call(char, "Contains #{char} char")
     end
 
-    escape_map = Hash[*chars.zip(escapes).flatten]
-    File.open('escapes.yml', 'w+'){ |f| f << YAML.dump(escape_map) }
+    escape_map = Hash[*chars.zip(escapes).sort.flatten]
+    File.open('album_escapes.yml', 'w+'){ |f| f << YAML.dump(escape_map) }
   end
 end
 
