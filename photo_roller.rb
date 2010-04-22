@@ -54,12 +54,15 @@ class PhotoRoller
       album_cache = albums
 
       parent_album = album_cache.find{ |a| a.title == PhotoRoller.escape_album(account[:parent_album]) }
-      raise "Could not find parent album '#{account[:parent_album]}; create it or modify account settings'" unless parent_album
+      raise "Could not find parent album '#{account[:parent_album]}'; create it or modify account settings" unless parent_album
 
       File.open(account[:rejects_file], 'w') do |rejects|
+        log_reject = lambda { |row| rejects << "#{row.join("\t")}\n" }
+
         album_data.rolls.each do |roll|
           iphoto_images = roll.images
-          puts "Roll: #{roll.name}"
+          escaped_name = PhotoRoller.escape_album(roll.name)
+          puts "Roll: '#{roll.name}'#{roll.name != escaped_name ? " (escaped: '#{escaped_name}')" : ''}"
 
           # Exclusions
           PhotoRoller.reject_images(iphoto_images, 'excluded by media type'){ |iphoto_image| account[:excluded_media_types].include?(iphoto_image.media_type) }
@@ -69,7 +72,7 @@ class PhotoRoller
           # Don't create album if we've filtered all images
           next if iphoto_images.empty? && !roll.images.empty?
 
-          remote_album = album_cache.find{ |a| a.title == PhotoRoller.escape_album(roll.name) }
+          remote_album = album_cache.find{ |a| a.title == escaped_name }
           if remote_album
             # Only upload photos that don't already exist
             puts "Album exists: #{roll.name}"
@@ -81,18 +84,16 @@ class PhotoRoller
             response = parent_album.add_album(roll.name)
             unless remote.status == Gallery::Remote::GR_STAT_SUCCESS
               iphoto_images.each do |iphoto_image|
-                rejects << [iphoto_image.path, '-', "Not uploaded since album '#{roll.name}' could not be created", 'Failed to create album'].join("\t")
-                rejects << "\n"
+                log_reject.call([iphoto_image.path, '-', "Not uploaded since album '#{roll.name}' could not be created", 'Failed to create album'])
               end
               next
             end
 
             album_cache = albums
-            remote_album = album_cache.find{ |a| a.title == PhotoRoller.escape_album(roll.name) }
+            remote_album = album_cache.find{ |a| a.title == escaped_name }
             unless remote_album
               iphoto_images.each do |iphoto_image|
-                rejects << [iphoto_image.path, '-', "not uploaded since album '#{roll.name}' could not be found using escaped name '#{PhotoRoller.escape_album(roll.name)}'", 'Failed to find album'].join("\t")
-                rejects << "\n"
+                log_reject.call([iphoto_image.path, '-', "not uploaded since album '#{roll.name}' could not be found using escaped name '#{escaped_name}'", 'Failed to find album'])
               end
               next
             end
@@ -104,15 +105,14 @@ class PhotoRoller
           puts "Uploading #{iphoto_images.size} photos"
           iphoto_images.each do |iphoto_image|
             unless Gallery::Remote.supported_type?(File.extname(iphoto_image.path).downcase)
-              rejects << [iphoto_image.path, '-', "MIME type for extension #{File.extname(iphoto_image.path).downcase} unknown", 'Unsupported file type'].join("\t")
-              rejects << "\n"
+              log_reject.call([iphoto_image.path, '-', "MIME type for extension #{File.extname(iphoto_image.path).downcase} unknown", 'Unsupported file type'])
               next
             end
             remote_album.add_item(iphoto_image.path, PhotoRoller.iphoto_image_to_params(iphoto_image))
             unless remote.status == Gallery::Remote::GR_STAT_SUCCESS
               # Failed to upload photo -- make this check more specific
-              rejects << [iphoto_image.path, remote.status, remote.status_text, Gallery::Remote::STATUS_DESCRIPTIONS[remote.status]].join("\t")
-              rejects << "\n"
+              log_reject.call([iphoto_image.path, remote.status, remote.status_text, Gallery::Remote::STATUS_DESCRIPTIONS[remote.status]])
+              next
             end
           end
 
