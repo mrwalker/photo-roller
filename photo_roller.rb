@@ -53,7 +53,7 @@ class PhotoRoller
       login(account[:username], account[:password])
       album_cache = albums
 
-      parent_album = album_cache.find{ |a| a.title == account[:parent_album] }
+      parent_album = album_cache.find{ |a| a.title == PhotoRoller.escape_album(account[:parent_album]) }
       raise "Could not find parent album '#{account[:parent_album]}; create it or modify account settings'" unless parent_album
 
       File.open(account[:rejects_file], 'w') do |rejects|
@@ -69,7 +69,7 @@ class PhotoRoller
           # Don't create album if we've filtered all images
           next if iphoto_images.empty? && !roll.images.empty?
 
-          remote_album = album_cache.find{ |a| a.title == roll.name }
+          remote_album = album_cache.find{ |a| a.title == PhotoRoller.escape_album(roll.name) }
           if remote_album
             # Only upload photos that don't already exist
             puts "Album exists: #{roll.name}"
