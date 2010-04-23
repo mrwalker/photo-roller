@@ -4,6 +4,7 @@ The PhotoRoller is designed to automate uploading the photo rolls (or "events"
 as they're now called) from your iPhoto library to Gallery.  This is ideal for
 those who want to maintain their library locally, then simply duplicate it to
 Gallery for sharing or backup.  To export your iPhoto library to Gallery:
+
 * Copy `config/account.yml.template` to `config/account.yml` and fill in the missing data
 * Run `./roll_photos.rb`
 
