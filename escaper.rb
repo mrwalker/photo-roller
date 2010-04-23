@@ -80,19 +80,19 @@ class Escaper
         '<', '>', '[', ']', '{', '}', '\\', '|', '-', '_', '+', '=', '`', '~',
         '!', '@', '#', '$', '%', '^', '&', '*', '(', ')']
 
-      escapes = chars.map do |char|
+      album_escapes = chars.map do |char|
         test_album_name(char, "Contains #{char} char")
       end
-      escape_map = Hash[*chars.zip(escapes).sort.flatten]
-      File.open('album_escapes.yml', 'w+'){ |f| f << YAML.dump(escape_map) }
+      album_escape_map = Hash[*chars.zip(album_escapes).sort.flatten]
 
-      escapes = chars.map do |char|
+      image_escapes = chars.map do |char|
         test_image_name(char, "Contains #{char} char")
       end
-      escape_map = Hash[*chars.zip(escapes).sort.flatten]
-      File.open('image_escapes.yml', 'w+'){ |f| f << YAML.dump(escape_map) }
+      image_escape_map = Hash[*chars.zip(image_escapes).sort.flatten]
+
+      File.open('config/escapes.yml', 'w+'){ |f| f << YAML.dump({:album_escapes => album_escape_map, :image_escapes => image_escape_map}) }
     end
   end
 end
 
-Escaper.new.escape(YAML.load_file('account.yml'))
+Escaper.new.escape(YAML.load_file('config/account.yml'))

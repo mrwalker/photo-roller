@@ -1,8 +1,5 @@
 require 'yaml'
-
-$:.unshift File.join(File.dirname(__FILE__), 'lib')
 require 'iphoto'
-
 require 'rubygems'
 require 'gallery'
 
@@ -15,8 +12,7 @@ class PhotoRoller
     #:keyword_string => :'extrafield.Keywords'
   }
 
-  @@album_escapes = YAML.load_file('album_escapes.yml')
-  @@image_escapes = YAML.load_file('image_escapes.yml')
+  @@escapes = YAML.load_file('config/escapes.yml')
 
   def self.iphoto_image_to_params(iphoto_image)
     @@photo_mapping.inject({}) do |remote, (photo_key, remote_key)|
@@ -32,11 +28,11 @@ class PhotoRoller
   end
 
   def self.escape_album(name)
-    escape(name, @@album_escapes)
+    escape(name, @@escapes[:album_escapes])
   end
 
   def self.escape_image(name)
-    escape(name, @@image_escapes)
+    escape(name, @@escapes[:image_escapes])
   end
 
   def self.escape(name, escapes)
