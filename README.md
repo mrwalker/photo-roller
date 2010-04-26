@@ -25,5 +25,5 @@ Gallery for sharing or backup.  To export your iPhoto library to Gallery:
 ## Dependencies
 
 * Ruby
-* (gallery-remote)[http://github.com/mrwalker/gallery-remote] gem
-* (plist)[http://plist.rubyforge.org/] gem
+* [gallery-remote](http://github.com/mrwalker/gallery-remote) gem
+* [plist](http://plist.rubyforge.org/) gem
