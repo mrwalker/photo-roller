@@ -48,9 +48,13 @@ class PhotoRoller
     Gallery::Gallery.new(account[:url]) do
       login(account[:username], account[:password])
       album_cache = albums
+      puts "#{album_cache.size} albums in gallery"
 
       parent_album = album_cache.find{ |a| a.title == PhotoRoller.escape_album(account[:parent_album]) }
       raise "Could not find parent album '#{account[:parent_album]}'; create it or modify account settings" unless parent_album
+
+      album_cache = album_cache.select{ |a| a.parent == parent_album.name }
+      puts "#{album_cache.size} albums are children of parent album"
 
       File.open(account[:rejects_file], 'w') do |rejects|
         log_reject = lambda { |row| rejects << "#{row.join("\t")}\n" }
@@ -85,7 +89,7 @@ class PhotoRoller
               next
             end
 
-            album_cache = albums
+            album_cache = albums.select{ |a| a.parent == parent_album.name }
             remote_album = album_cache.find{ |a| a.title == escaped_name }
             unless remote_album
               iphoto_images.each do |iphoto_image|
